@@ -1,0 +1,8 @@
+[package]
+name = "i_shape_ffi"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+i_overlay = { version = "~4.1.1" }
