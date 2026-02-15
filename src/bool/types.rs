@@ -1,8 +1,9 @@
-use i_overlay::core::fill_rule::FillRule;
-use i_overlay::core::overlay::{
+use i_triangle::i_overlay::core::fill_rule::FillRule;
+use i_triangle::i_overlay::core::overlay::{
     ContourDirection, IntOverlayOptions as CoreOverlayOptions, ShapeType,
 };
-use i_overlay::core::overlay_rule::OverlayRule;
+use i_triangle::i_overlay::core::overlay_rule::OverlayRule;
+use i_triangle::i_overlay::float::overlay::OverlayOptions as CoreFloatOverlayOptions;
 
 /// Wrapper enum mirroring `i_overlay::core::overlay::ShapeType` for FFI consumers.
 #[repr(C)]
@@ -98,6 +99,50 @@ impl Default for IntOverlayOptions {
     #[inline]
     fn default() -> Self {
         CoreOverlayOptions::default().into()
+    }
+}
+
+/// FFI-safe options struct mirroring `i_overlay::float::overlay::OverlayOptions<f64>`.
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Float64OverlayOptions {
+    pub preserve_input_collinear: bool,
+    pub output_direction: IntContourDirection,
+    pub preserve_output_collinear: bool,
+    pub min_output_area: f64,
+    pub clean_result: bool,
+}
+
+impl From<Float64OverlayOptions> for CoreFloatOverlayOptions<f64> {
+    #[inline]
+    fn from(value: Float64OverlayOptions) -> Self {
+        Self {
+            preserve_input_collinear: value.preserve_input_collinear,
+            output_direction: value.output_direction.into(),
+            preserve_output_collinear: value.preserve_output_collinear,
+            min_output_area: value.min_output_area,
+            clean_result: value.clean_result,
+        }
+    }
+}
+
+impl From<CoreFloatOverlayOptions<f64>> for Float64OverlayOptions {
+    #[inline]
+    fn from(value: CoreFloatOverlayOptions<f64>) -> Self {
+        Self {
+            preserve_input_collinear: value.preserve_input_collinear,
+            output_direction: value.output_direction.into(),
+            preserve_output_collinear: value.preserve_output_collinear,
+            min_output_area: value.min_output_area,
+            clean_result: value.clean_result,
+        }
+    }
+}
+
+impl Default for Float64OverlayOptions {
+    #[inline]
+    fn default() -> Self {
+        CoreFloatOverlayOptions::<f64>::default().into()
     }
 }
 

@@ -1,10 +1,10 @@
 use super::types::IntOverlayOptions as FfiOverlayOptions;
-use i_overlay::core::fill_rule::FillRule;
-use i_overlay::core::overlay::{Overlay, ShapeType};
-use i_overlay::core::overlay_rule::OverlayRule;
-use i_overlay::core::solver::Solver;
-use i_overlay::i_float::int::point::IntPoint;
-use i_overlay::i_shape::int::shape::IntShapes;
+use i_triangle::i_overlay::core::fill_rule::FillRule;
+use i_triangle::i_overlay::core::overlay::{Overlay, ShapeType};
+use i_triangle::i_overlay::core::overlay_rule::OverlayRule;
+use i_triangle::i_overlay::core::solver::Solver;
+use i_triangle::i_overlay::i_float::int::point::IntPoint;
+use i_triangle::i_overlay::i_shape::int::shape::IntShapes;
 
 /// Wrapper around the integer overlay that provides a stable layout for FFI consumers.
 pub struct IntOverlay {

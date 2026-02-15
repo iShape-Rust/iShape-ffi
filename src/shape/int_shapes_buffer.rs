@@ -1,8 +1,8 @@
 use alloc::vec::Vec;
 use core::ops::Range;
-use i_overlay::i_float::int::point::IntPoint;
-use i_overlay::i_shape::int::count::PointsCount;
-use i_overlay::i_shape::int::shape::{IntContour, IntShape, IntShapes};
+use i_triangle::i_overlay::i_float::int::point::IntPoint;
+use i_triangle::i_overlay::i_shape::int::count::PointsCount;
+use i_triangle::i_overlay::i_shape::int::shape::{IntContour, IntShape, IntShapes};
 
 /// Half-open range helper that can safely cross the FFI boundary.
 #[repr(C)]

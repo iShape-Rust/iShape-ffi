@@ -7,4 +7,4 @@ edition = "2024"
 crate-type = ["staticlib"]
 
 [dependencies]
-i_overlay = { version = "~4.1.1" }
+i_triangle = { version = "~0.38.0" }
