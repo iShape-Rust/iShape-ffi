@@ -79,6 +79,7 @@ impl From<IntOverlayOptions> for CoreOverlayOptions {
             output_direction: value.output_direction.into(),
             preserve_output_collinear: value.preserve_output_collinear,
             min_output_area: value.min_output_area,
+            ogc: false,
         }
     }
 }
@@ -121,6 +122,7 @@ impl From<Float64OverlayOptions> for CoreFloatOverlayOptions<f64> {
             output_direction: value.output_direction.into(),
             preserve_output_collinear: value.preserve_output_collinear,
             min_output_area: value.min_output_area,
+            ogc: false,
             clean_result: value.clean_result,
         }
     }

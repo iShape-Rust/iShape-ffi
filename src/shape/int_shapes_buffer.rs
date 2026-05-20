@@ -1,8 +1,9 @@
 use alloc::vec::Vec;
 use core::ops::Range;
 use i_triangle::i_overlay::i_float::int::point::IntPoint;
+use i_triangle::i_overlay::i_shape::flat::buffer::FlatShapesBuffer as CoreFlatShapesBuffer;
 use i_triangle::i_overlay::i_shape::int::count::PointsCount;
-use i_triangle::i_overlay::i_shape::int::shape::{IntContour, IntShape, IntShapes};
+use i_triangle::i_overlay::i_shape::int::shape::{IntShape, IntShapes};
 
 /// Half-open range helper that can safely cross the FFI boundary.
 #[repr(C)]
@@ -15,10 +16,17 @@ pub struct RangeFFI {
 impl From<Range<usize>> for RangeFFI {
     #[inline]
     fn from(value: Range<usize>) -> Self {
-        RangeFFI {
+        Self {
             start: value.start as u64,
             end: value.end as u64,
         }
+    }
+}
+
+impl From<RangeFFI> for Range<usize> {
+    #[inline]
+    fn from(value: RangeFFI) -> Self {
+        (value.start as usize)..(value.end as usize)
     }
 }
 
@@ -37,21 +45,18 @@ pub struct FlatShapesBuffer {
 }
 
 impl FlatShapesBuffer {
-    /// Constructs an empty buffer reserving the requested capacities for reuse.
     #[inline]
     pub fn with_capacity(points: usize, contours: usize, shapes: usize) -> Self {
-        let mut buffer = FlatShapesBuffer::default();
+        let mut buffer = Self::default();
         buffer.reserve(points, contours, shapes);
         buffer
     }
 
-    /// Returns `true` when no shapes are stored.
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.flat_points.is_empty()
     }
 
-    /// Removes all stored data while preserving the current capacity.
     #[inline]
     pub fn clear(&mut self) {
         self.flat_points.clear();
@@ -59,86 +64,90 @@ impl FlatShapesBuffer {
         self.shape_ranges.clear();
     }
 
-    /// Clears the buffer while keeping enough capacity for the provided shapes.
     #[inline]
     pub fn set_shapes(&mut self, shapes: &[IntShape]) {
         let point_count = shapes.points_count();
         let contour_count: usize = shapes.iter().map(IntShape::len).sum();
         let shape_count = shapes.len();
 
-        self.clear_and_reserve(point_count * 2, contour_count, shape_count);
-
-        self.push_shapes(shapes);
+        let mut core = CoreFlatShapesBuffer::with_capacity(point_count, contour_count, shape_count);
+        core.set_with_shapes(shapes);
+        self.set_from_core(&core);
     }
 
-    /// Populates the buffer from a list of shapes without clearing first.
-    ///
-    /// The caller is responsible for reserving enough capacity.
     #[inline]
     pub fn push_shapes(&mut self, shapes: &[IntShape]) {
-        let mut contour_offset = self.contour_ranges.len();
-
-        for shape in shapes {
-            let shape_start = contour_offset;
-            for contour in shape {
-                let range = self.push_contour(contour);
-                self.contour_ranges.push(range);
-                contour_offset += 1;
-            }
-
-            let shape_range = RangeFFI {
-                start: shape_start as u64,
-                end: contour_offset as u64,
-            };
-            self.shape_ranges.push(shape_range);
+        if shapes.is_empty() {
+            return;
         }
+
+        if self.is_empty() {
+            self.set_shapes(shapes);
+            return;
+        }
+
+        let mut core = self.to_core();
+        for shape in shapes {
+            core.add_shape(shape);
+        }
+
+        self.set_from_core(&core);
     }
 
-    /// Converts the buffer back into `IntShapes`.
     #[inline]
     pub fn to_shapes(&self) -> IntShapes {
-        let mut shapes: IntShapes = Vec::with_capacity(self.shape_ranges.len());
-        for shape_range in &self.shape_ranges {
-            let start = shape_range.start as usize;
-            let end = shape_range.end as usize;
-            let mut shape: IntShape = Vec::with_capacity(end - start);
-            for contour_index in start..end {
-                let contour_range = self.contour_ranges[contour_index];
-                let start = contour_range.start as usize;
-                let end = contour_range.end as usize;
-                let slice = &self.flat_points[start..end];
-                shape.push(self.slice_to_contour(slice));
-            }
-            shapes.push(shape);
-        }
-
-        shapes
+        self.to_core().to_shapes()
     }
 
     #[inline]
-    fn push_contour(&mut self, contour: &[IntPoint]) -> RangeFFI {
-        let start = self.flat_points.len();
-        self.flat_points.reserve(contour.len() * 2);
+    fn set_from_core(&mut self, core: &CoreFlatShapesBuffer) {
+        self.clear_and_reserve(
+            core.points.len().saturating_mul(2),
+            core.contour_ranges.len(),
+            core.shape_ranges.len(),
+        );
 
-        for point in contour {
+        for point in &core.points {
             self.flat_points.push(point.x);
             self.flat_points.push(point.y);
         }
 
-        RangeFFI {
-            start: start as u64,
-            end: self.flat_points.len() as u64,
-        }
+        self.contour_ranges.extend(
+            core.contour_ranges
+                .iter()
+                .map(|r| (r.start.saturating_mul(2))..(r.end.saturating_mul(2)))
+                .map(RangeFFI::from),
+        );
+        self.shape_ranges
+            .extend(core.shape_ranges.iter().cloned().map(RangeFFI::from));
     }
 
     #[inline]
-    fn slice_to_contour(&self, slice: &[i32]) -> IntContour {
-        debug_assert!(slice.len() % 2 == 0);
-        let mut contour = Vec::with_capacity(slice.len() / 2);
-        for coords in slice.chunks_exact(2) {
-            contour.push(IntPoint::new(coords[0], coords[1]));
+    fn to_core(&self) -> CoreFlatShapesBuffer {
+        let mut points = Vec::with_capacity(self.flat_points.len() / 2);
+        for chunk in self.flat_points.chunks_exact(2) {
+            points.push(IntPoint::new(chunk[0], chunk[1]));
         }
-        contour
+
+        let contour_ranges = self
+            .contour_ranges
+            .iter()
+            .copied()
+            .map(Range::<usize>::from)
+            .map(|r| (r.start / 2)..(r.end / 2))
+            .collect();
+        let shape_ranges = self
+            .shape_ranges
+            .iter()
+            .copied()
+            .map(Range::<usize>::from)
+            .collect();
+
+        CoreFlatShapesBuffer {
+            points,
+            contour_ranges,
+            shape_ranges,
+        }
     }
 
     #[inline]
@@ -160,13 +169,8 @@ impl FlatShapesBuffer {
 impl From<&[IntShape]> for FlatShapesBuffer {
     #[inline]
     fn from(shapes: &[IntShape]) -> Self {
-        let point_count = shapes.points_count();
-        let contour_count: usize = shapes.iter().map(IntShape::len).sum();
-        let shape_count = shapes.len();
-
-        let mut buffer =
-            FlatShapesBuffer::with_capacity(point_count * 2, contour_count, shape_count);
-        buffer.push_shapes(shapes);
+        let mut buffer = FlatShapesBuffer::default();
+        buffer.set_shapes(shapes);
         buffer
     }
 }
@@ -174,6 +178,6 @@ impl From<&[IntShape]> for FlatShapesBuffer {
 impl From<&IntShapes> for FlatShapesBuffer {
     #[inline]
     fn from(shapes: &IntShapes) -> Self {
-        FlatShapesBuffer::from(shapes.as_slice())
+        Self::from(shapes.as_slice())
     }
 }
