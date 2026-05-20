@@ -75,7 +75,7 @@ impl<'a> Iterator for FlatF64ShapesBufferResourceIterator<'a> {
     }
 }
 
-impl ShapeResource<[f64; 2], f64> for FlatF64ShapesBuffer {
+impl ShapeResource<[f64; 2]> for FlatF64ShapesBuffer {
     type ResourceIter<'a>
         = FlatF64ShapesBufferResourceIterator<'a>
     where
@@ -119,7 +119,7 @@ impl FlatF64ShapesBuffer {
     #[inline]
     pub fn set_shapes<P>(&mut self, shapes: &[Shape<P>])
     where
-        P: FloatPointCompatible<f64>,
+        P: FloatPointCompatible<Scalar = f64>,
     {
         let point_count: usize = shapes
             .iter()
@@ -152,7 +152,7 @@ impl FlatF64ShapesBuffer {
     #[inline]
     pub fn push_shapes<P>(&mut self, shapes: &[Shape<P>])
     where
-        P: FloatPointCompatible<f64>,
+        P: FloatPointCompatible<Scalar = f64>,
     {
         if shapes.is_empty() {
             return;
