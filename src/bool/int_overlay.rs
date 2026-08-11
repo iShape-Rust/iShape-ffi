@@ -8,7 +8,7 @@ use i_triangle::i_overlay::i_shape::int::shape::IntShapes;
 
 /// Wrapper around the integer overlay that provides a stable layout for FFI consumers.
 pub struct IntOverlay {
-    inner: Overlay,
+    inner: Overlay<i32>,
 }
 
 /// Errors that can occur when converting raw coordinate buffers into contours.
@@ -50,7 +50,7 @@ impl IntOverlay {
 
     /// Executes the boolean operation and returns the resulting shapes.
     #[inline]
-    pub fn overlay(&mut self, overlay_rule: OverlayRule, fill_rule: FillRule) -> IntShapes {
+    pub fn overlay(&mut self, overlay_rule: OverlayRule, fill_rule: FillRule) -> IntShapes<i32> {
         self.inner.overlay(overlay_rule, fill_rule)
     }
 }

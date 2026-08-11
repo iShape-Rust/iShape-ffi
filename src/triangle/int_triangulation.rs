@@ -39,7 +39,7 @@ impl FlatIntTriangulation {
     #[inline]
     pub fn set_triangulation(
         &mut self,
-        triangulation: &CoreIntTriangulation<IntTriangulationIndex>,
+        triangulation: &CoreIntTriangulation<i32, IntTriangulationIndex>,
     ) {
         self.clear_and_reserve(triangulation.points.len(), triangulation.indices.len() / 3);
         self.push_triangulation(triangulation);
@@ -51,7 +51,7 @@ impl FlatIntTriangulation {
     #[inline]
     pub fn push_triangulation(
         &mut self,
-        triangulation: &CoreIntTriangulation<IntTriangulationIndex>,
+        triangulation: &CoreIntTriangulation<i32, IntTriangulationIndex>,
     ) {
         for point in &triangulation.points {
             self.flat_points.push(point.x);
@@ -63,7 +63,7 @@ impl FlatIntTriangulation {
 
     /// Converts the stored data back into a core triangulation.
     #[inline]
-    pub fn to_triangulation(&self) -> CoreIntTriangulation<IntTriangulationIndex> {
+    pub fn to_triangulation(&self) -> CoreIntTriangulation<i32, IntTriangulationIndex> {
         let mut triangulation = CoreIntTriangulation::default();
         self.fill_triangulation(&mut triangulation);
         triangulation
@@ -73,7 +73,7 @@ impl FlatIntTriangulation {
     #[inline]
     pub fn fill_triangulation(
         &self,
-        triangulation: &mut CoreIntTriangulation<IntTriangulationIndex>,
+        triangulation: &mut CoreIntTriangulation<i32, IntTriangulationIndex>,
     ) {
         triangulation.points.clear();
         triangulation.points.reserve(self.flat_points.len() / 2);
@@ -98,9 +98,9 @@ impl FlatIntTriangulation {
     }
 }
 
-impl From<&CoreIntTriangulation<IntTriangulationIndex>> for FlatIntTriangulation {
+impl From<&CoreIntTriangulation<i32, IntTriangulationIndex>> for FlatIntTriangulation {
     #[inline]
-    fn from(value: &CoreIntTriangulation<IntTriangulationIndex>) -> Self {
+    fn from(value: &CoreIntTriangulation<i32, IntTriangulationIndex>) -> Self {
         let mut flat =
             FlatIntTriangulation::with_capacity(value.points.len(), value.indices.len() / 3);
         flat.push_triangulation(value);

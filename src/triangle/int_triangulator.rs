@@ -11,7 +11,7 @@ pub enum TriangulateContourError {
 
 /// FFI-safe wrapper around `i_triangle::int::triangulator::IntTriangulator`.
 pub struct IntTriangulator {
-    pub(crate) inner: CoreIntTriangulator<IntTriangulationIndex>,
+    pub(crate) inner: CoreIntTriangulator<i32, IntTriangulationIndex>,
 }
 
 impl IntTriangulator {

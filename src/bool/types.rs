@@ -5,6 +5,9 @@ use i_triangle::i_overlay::core::overlay::{
 use i_triangle::i_overlay::core::overlay_rule::OverlayRule;
 use i_triangle::i_overlay::float::overlay::OverlayOptions as CoreFloatOverlayOptions;
 
+type CoreIntOverlayOptions = CoreOverlayOptions<u64>;
+type CoreFloat64OverlayOptions = CoreFloatOverlayOptions<f64, i32>;
+
 /// Wrapper enum mirroring `i_overlay::core::overlay::ShapeType` for FFI consumers.
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -71,7 +74,7 @@ pub struct IntOverlayOptions {
     pub min_output_area: u64,
 }
 
-impl From<IntOverlayOptions> for CoreOverlayOptions {
+impl From<IntOverlayOptions> for CoreIntOverlayOptions {
     #[inline]
     fn from(value: IntOverlayOptions) -> Self {
         Self {
@@ -84,9 +87,9 @@ impl From<IntOverlayOptions> for CoreOverlayOptions {
     }
 }
 
-impl From<CoreOverlayOptions> for IntOverlayOptions {
+impl From<CoreIntOverlayOptions> for IntOverlayOptions {
     #[inline]
-    fn from(value: CoreOverlayOptions) -> Self {
+    fn from(value: CoreIntOverlayOptions) -> Self {
         Self {
             preserve_input_collinear: value.preserve_input_collinear,
             output_direction: value.output_direction.into(),
@@ -99,7 +102,7 @@ impl From<CoreOverlayOptions> for IntOverlayOptions {
 impl Default for IntOverlayOptions {
     #[inline]
     fn default() -> Self {
-        CoreOverlayOptions::default().into()
+        CoreIntOverlayOptions::default().into()
     }
 }
 
@@ -114,21 +117,21 @@ pub struct Float64OverlayOptions {
     pub clean_result: bool,
 }
 
-impl From<Float64OverlayOptions> for CoreFloatOverlayOptions<f64> {
+impl From<Float64OverlayOptions> for CoreFloat64OverlayOptions {
     #[inline]
     fn from(value: Float64OverlayOptions) -> Self {
-        Self {
-            preserve_input_collinear: value.preserve_input_collinear,
-            output_direction: value.output_direction.into(),
-            preserve_output_collinear: value.preserve_output_collinear,
-            min_output_area: value.min_output_area,
-            ogc: false,
-            clean_result: value.clean_result,
-        }
+        let mut options = Self::default();
+        options.preserve_input_collinear = value.preserve_input_collinear;
+        options.output_direction = value.output_direction.into();
+        options.preserve_output_collinear = value.preserve_output_collinear;
+        options.min_output_area = value.min_output_area;
+        options.ogc = false;
+        options.clean_result = value.clean_result;
+        options
     }
 }
 
-impl From<CoreFloatOverlayOptions<f64>> for Float64OverlayOptions {
+impl From<CoreFloat64OverlayOptions> for Float64OverlayOptions {
     #[inline]
     fn from(value: CoreFloatOverlayOptions<f64>) -> Self {
         Self {

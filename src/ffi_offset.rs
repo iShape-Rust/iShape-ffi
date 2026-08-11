@@ -208,10 +208,16 @@ pub extern "C" fn ishape_variable_stroke_f64_contour_to_flat_styled(
         return false;
     };
 
-    let style = VariableStrokeStyle::new()
-        .line_join(join)
-        .start_cap(start_cap)
-        .end_cap(end_cap);
+    // iOverlay's variable-width stroke currently uses round joins and caps.
+    // Preserve the existing FFI signature and use the first round-style angle
+    // supplied by callers as the shared tessellation angle.
+    let round_angle = match (join, start_cap, end_cap) {
+        (LineJoin::Round(value), _, _) => value,
+        (_, LineCap::Round(value), _) => value,
+        (_, _, LineCap::Round(value)) => value,
+        _ => 0.1,
+    };
+    let style = VariableStrokeStyle::new(round_angle);
     let shapes = contour.variable_stroke(style, is_closed_path);
 
     let buffer = unsafe { &mut *output };

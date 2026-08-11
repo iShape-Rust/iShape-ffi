@@ -9,7 +9,7 @@ pub struct IntTriangulatorValidation {
     pub options: IntOverlayOptions,
 }
 
-impl From<IntTriangulatorValidation> for CoreValidation {
+impl From<IntTriangulatorValidation> for CoreValidation<i32> {
     #[inline]
     fn from(value: IntTriangulatorValidation) -> Self {
         Self {
@@ -19,9 +19,9 @@ impl From<IntTriangulatorValidation> for CoreValidation {
     }
 }
 
-impl From<CoreValidation> for IntTriangulatorValidation {
+impl From<CoreValidation<i32>> for IntTriangulatorValidation {
     #[inline]
-    fn from(value: CoreValidation) -> Self {
+    fn from(value: CoreValidation<i32>) -> Self {
         Self {
             fill_rule: value.fill_rule.into(),
             options: value.options.into(),
@@ -36,7 +36,7 @@ impl Default for IntTriangulatorValidation {
 
         Self {
             fill_rule: IntFillRule::NonZero,
-            options: CoreOverlayOptions::keep_output_points().into(),
+            options: CoreOverlayOptions::<u64>::keep_output_points().into(),
         }
     }
 }

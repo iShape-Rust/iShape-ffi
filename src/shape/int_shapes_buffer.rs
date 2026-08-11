@@ -65,18 +65,19 @@ impl FlatShapesBuffer {
     }
 
     #[inline]
-    pub fn set_shapes(&mut self, shapes: &[IntShape]) {
+    pub fn set_shapes(&mut self, shapes: &[IntShape<i32>]) {
         let point_count = shapes.points_count();
         let contour_count: usize = shapes.iter().map(IntShape::len).sum();
         let shape_count = shapes.len();
 
-        let mut core = CoreFlatShapesBuffer::with_capacity(point_count, contour_count, shape_count);
+        let mut core =
+            CoreFlatShapesBuffer::<i32>::with_capacity(point_count, contour_count, shape_count);
         core.set_with_shapes(shapes);
         self.set_from_core(&core);
     }
 
     #[inline]
-    pub fn push_shapes(&mut self, shapes: &[IntShape]) {
+    pub fn push_shapes(&mut self, shapes: &[IntShape<i32>]) {
         if shapes.is_empty() {
             return;
         }
@@ -95,12 +96,12 @@ impl FlatShapesBuffer {
     }
 
     #[inline]
-    pub fn to_shapes(&self) -> IntShapes {
+    pub fn to_shapes(&self) -> IntShapes<i32> {
         self.to_core().to_shapes()
     }
 
     #[inline]
-    fn set_from_core(&mut self, core: &CoreFlatShapesBuffer) {
+    fn set_from_core(&mut self, core: &CoreFlatShapesBuffer<i32>) {
         self.clear_and_reserve(
             core.points.len().saturating_mul(2),
             core.contour_ranges.len(),
@@ -123,7 +124,7 @@ impl FlatShapesBuffer {
     }
 
     #[inline]
-    fn to_core(&self) -> CoreFlatShapesBuffer {
+    fn to_core(&self) -> CoreFlatShapesBuffer<i32> {
         let mut points = Vec::with_capacity(self.flat_points.len() / 2);
         for chunk in self.flat_points.chunks_exact(2) {
             points.push(IntPoint::new(chunk[0], chunk[1]));
@@ -166,18 +167,18 @@ impl FlatShapesBuffer {
     }
 }
 
-impl From<&[IntShape]> for FlatShapesBuffer {
+impl From<&[IntShape<i32>]> for FlatShapesBuffer {
     #[inline]
-    fn from(shapes: &[IntShape]) -> Self {
+    fn from(shapes: &[IntShape<i32>]) -> Self {
         let mut buffer = FlatShapesBuffer::default();
         buffer.set_shapes(shapes);
         buffer
     }
 }
 
-impl From<&IntShapes> for FlatShapesBuffer {
+impl From<&IntShapes<i32>> for FlatShapesBuffer {
     #[inline]
-    fn from(shapes: &IntShapes) -> Self {
+    fn from(shapes: &IntShapes<i32>) -> Self {
         Self::from(shapes.as_slice())
     }
 }
