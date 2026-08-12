@@ -6,8 +6,9 @@ use i_triangle::i_overlay::core::solver::Solver;
 use i_triangle::i_overlay::float::overlay::FloatOverlay as CoreFloatOverlay;
 
 use crate::{
-    FlatF64ShapesBuffer, FlatShapesBuffer, Float64Overlay, Float64OverlayOptions, IntFillRule,
-    IntOverlay, IntOverlayOptions, IntOverlayRule, IntShapeType,
+    FlatF64ShapesBuffer, FlatShapesBuffer, Float64Overlay, Float64OverlayOptions,
+    FloatFlatShapeHierarchy, IntFillRule, IntOverlay, IntOverlayOptions, IntOverlayRule,
+    IntShapeType,
 };
 
 #[unsafe(no_mangle)]
@@ -138,6 +139,25 @@ pub extern "C" fn ishape_overlay_f64_overlay_into_flat(
 }
 
 #[unsafe(no_mangle)]
+pub extern "C" fn ishape_overlay_f64_overlay_into_flat_hierarchy(
+    handle: *mut Float64Overlay,
+    overlay_rule: IntOverlayRule,
+    fill_rule: IntFillRule,
+    output: *mut FloatFlatShapeHierarchy,
+) -> bool {
+    if handle.is_null() || output.is_null() {
+        return false;
+    }
+
+    let overlay = unsafe { &*handle };
+    let hierarchy = overlay.overlay_hierarchy(overlay_rule.into(), fill_rule.into());
+    let buffer = unsafe { &mut *output };
+    buffer.set_from_core(&hierarchy);
+
+    true
+}
+
+#[unsafe(no_mangle)]
 pub extern "C" fn ishape_overlay_f64_flat_shapes_into_flat(
     subject: *const FlatF64ShapesBuffer,
     clip: *const FlatF64ShapesBuffer,
@@ -173,4 +193,45 @@ pub extern "C" fn ishape_overlay_f64_flat_shapes_into_flat(
     buffer.set_shapes(&shapes);
 
     true
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn float_overlay_hierarchy_exports_nested_links() {
+        let mut overlay = Float64Overlay::new(3, Float64OverlayOptions::default());
+        let contours = [
+            [0.0, 0.0, 100.0, 0.0, 100.0, 100.0, 0.0, 100.0],
+            [10.0, 10.0, 10.0, 90.0, 90.0, 90.0, 90.0, 10.0],
+            [20.0, 20.0, 80.0, 20.0, 80.0, 80.0, 20.0, 80.0],
+        ];
+        for contour in contours {
+            overlay
+                .add_contour(&contour, IntShapeType::Subject.into())
+                .unwrap();
+        }
+
+        let mut output = FloatFlatShapeHierarchy::default();
+        let ok = ishape_overlay_f64_overlay_into_flat_hierarchy(
+            &mut overlay,
+            IntOverlayRule::Subject,
+            IntFillRule::EvenOdd,
+            &mut output,
+        );
+
+        assert!(ok);
+        assert_eq!(output.shapes.shape_ranges.len(), 2);
+        assert_eq!(output.links.len(), 1);
+
+        let link = output.links[0];
+        assert!(link.parent_shape_index < output.shapes.shape_ranges.len());
+        assert!(link.child_shape_index < output.shapes.shape_ranges.len());
+        let parent_contours = output.shapes.shape_ranges[link.parent_shape_index];
+        assert!(
+            (parent_contours.start as usize..parent_contours.end as usize)
+                .contains(&link.parent_contour_index)
+        );
+    }
 }

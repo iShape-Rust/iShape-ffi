@@ -5,6 +5,7 @@ use i_triangle::i_overlay::core::fill_rule::FillRule;
 use i_triangle::i_overlay::core::overlay::ShapeType;
 use i_triangle::i_overlay::core::overlay_rule::OverlayRule;
 use i_triangle::i_overlay::core::solver::Solver;
+use i_triangle::i_overlay::float::hierarchy::FloatFlatShapeHierarchy;
 use i_triangle::i_overlay::float::overlay::FloatOverlay;
 use i_triangle::i_overlay::i_float::float::point::FloatPoint;
 use i_triangle::i_overlay::i_shape::base::data::{Contour, Shapes};
@@ -70,18 +71,33 @@ impl Float64Overlay {
     /// Executes the boolean operation and returns the resulting shapes.
     #[inline]
     pub fn overlay(&self, overlay_rule: OverlayRule, fill_rule: FillRule) -> Float64Shapes {
+        let mut overlay = self.core_overlay();
+        overlay.overlay(overlay_rule, fill_rule)
+    }
+
+    /// Executes the boolean operation and returns flat shapes with nesting links.
+    #[inline]
+    pub fn overlay_hierarchy(
+        &self,
+        overlay_rule: OverlayRule,
+        fill_rule: FillRule,
+    ) -> FloatFlatShapeHierarchy<Float64Point> {
+        let mut overlay = self.core_overlay();
+        overlay.overlay_hierarchy(overlay_rule, fill_rule)
+    }
+
+    #[inline]
+    fn core_overlay(&self) -> FloatOverlay<Float64Point> {
         let solver = Solver {
             multithreading: None,
             ..Solver::default()
         };
 
-        let mut overlay = FloatOverlay::with_subj_and_clip_custom(
+        FloatOverlay::with_subj_and_clip_custom(
             &self.subject,
             &self.clip,
             self.options.into(),
             solver,
-        );
-
-        overlay.overlay(overlay_rule, fill_rule)
+        )
     }
 }

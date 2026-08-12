@@ -9,7 +9,7 @@ use i_triangle::i_overlay::mesh::style::{LineCap, LineJoin, OutlineStyle, Stroke
 use i_triangle::i_overlay::mesh::variable_stroke::offset::VariableStrokeOffset;
 use i_triangle::i_overlay::mesh::variable_stroke::{StrokeVertex, VariableStrokeStyle};
 
-use crate::{FlatF64ShapesBuffer, FloatFlatShapeHierarchy, RangeFFI};
+use crate::FlatF64ShapesBuffer;
 
 type VariableStrokeContour = Vec<StrokeVertex<FloatPoint<f64>>>;
 type PreparedVariableStroke = (VariableStrokeContour, VariableStrokeStyle<f64>);
@@ -192,105 +192,6 @@ pub extern "C" fn ishape_variable_stroke_f64_contour_to_flat_styled(
     true
 }
 
-#[unsafe(no_mangle)]
-pub extern "C" fn ishape_variable_stroke_f64_contour_to_flat_hierarchy_styled(
-    vertices: *const f64,
-    count: usize,
-    is_closed_path: bool,
-    join_kind: u32,
-    join_value: f64,
-    start_cap_kind: u32,
-    start_cap_value: f64,
-    end_cap_kind: u32,
-    end_cap_value: f64,
-    output: *mut FloatFlatShapeHierarchy,
-) -> bool {
-    if output.is_null() {
-        return false;
-    }
-
-    let Some((contour, style)) = decode_variable_stroke(
-        vertices,
-        count,
-        is_closed_path,
-        join_kind,
-        join_value,
-        start_cap_kind,
-        start_cap_value,
-        end_cap_kind,
-        end_cap_value,
-    ) else {
-        return false;
-    };
-
-    let hierarchy = contour.variable_stroke_hierarchy(style);
-    let buffer = unsafe { &mut *output };
-    buffer.set_from_core(&hierarchy);
-
-    true
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn ishape_variable_stroke_f64_contours_to_flat_hierarchy_styled(
-    vertices: *const f64,
-    count: usize,
-    contour_ranges: *const RangeFFI,
-    contour_count: usize,
-    is_closed_path: bool,
-    join_kind: u32,
-    join_value: f64,
-    start_cap_kind: u32,
-    start_cap_value: f64,
-    end_cap_kind: u32,
-    end_cap_value: f64,
-    output: *mut FloatFlatShapeHierarchy,
-) -> bool {
-    if output.is_null()
-        || vertices.is_null()
-        || count == 0
-        || !count.is_multiple_of(3)
-        || contour_ranges.is_null()
-        || contour_count == 0
-    {
-        return false;
-    }
-
-    let Some(style) = decode_variable_stroke_style(
-        join_kind,
-        join_value,
-        start_cap_kind,
-        start_cap_value,
-        end_cap_kind,
-        end_cap_value,
-    ) else {
-        return false;
-    };
-
-    let vertices_slice = unsafe { slice::from_raw_parts(vertices, count) };
-    let ranges = unsafe { slice::from_raw_parts(contour_ranges, contour_count) };
-    let mut contours = Vec::with_capacity(contour_count);
-    for range in ranges {
-        let start = range.start as usize;
-        let end = range.end as usize;
-        if start >= end || end > count || !start.is_multiple_of(3) || !end.is_multiple_of(3) {
-            return false;
-        }
-
-        let Some(contour) =
-            decode_variable_stroke_contour(&vertices_slice[start..end], is_closed_path)
-        else {
-            return false;
-        };
-        contours.push(contour);
-    }
-
-    let hierarchy = contours.variable_stroke_hierarchy(style);
-    let buffer = unsafe { &mut *output };
-    buffer.set_from_core(&hierarchy);
-
-    true
-}
-
 #[allow(clippy::too_many_arguments)]
 fn decode_variable_stroke(
     vertices: *const f64,
@@ -384,12 +285,6 @@ mod tests {
     use super::*;
     use core::f64::consts::PI;
 
-    fn closed_square(min: f64, max: f64, width: f64) -> Vec<StrokeVertex<FloatPoint<f64>>> {
-        [(min, min), (max, min), (max, max), (min, max), (min, min)]
-            .map(|(x, y)| StrokeVertex::new(FloatPoint::new(x, y), width))
-            .to_vec()
-    }
-
     #[test]
     fn variable_stroke_f64_contour_to_flat_styled_outputs_shapes() {
         let vertices = [0.0, 0.0, 2.0, 10.0, 0.0, 8.0, 20.0, 10.0, 4.0];
@@ -432,55 +327,5 @@ mod tests {
 
         assert!(ok);
         assert!(!output.is_empty());
-    }
-
-    #[test]
-    fn float_flat_shape_hierarchy_preserves_nested_links() {
-        let paths = vec![
-            closed_square(0.0, 100.0, 10.0),
-            closed_square(30.0, 70.0, 10.0),
-        ];
-        let mut vertices = Vec::new();
-        let mut ranges = Vec::new();
-        for path in paths {
-            let start = vertices.len();
-            for vertex in path {
-                vertices.extend([vertex.point.x, vertex.point.y, vertex.width]);
-            }
-            ranges.push(RangeFFI {
-                start: start as u64,
-                end: vertices.len() as u64,
-            });
-        }
-
-        let mut output = FloatFlatShapeHierarchy::default();
-        let ok = ishape_variable_stroke_f64_contours_to_flat_hierarchy_styled(
-            vertices.as_ptr(),
-            vertices.len(),
-            ranges.as_ptr(),
-            ranges.len(),
-            true,
-            2,
-            0.1,
-            1,
-            0.1,
-            1,
-            0.1,
-            &mut output,
-        );
-
-        assert!(ok);
-        assert_eq!(output.shapes.shape_ranges.len(), 2);
-        assert_eq!(output.links.len(), 1);
-
-        let link = output.links[0];
-        assert_ne!(link.parent_shape_index, link.child_shape_index);
-        assert!(link.parent_shape_index < output.shapes.shape_ranges.len());
-        assert!(link.child_shape_index < output.shapes.shape_ranges.len());
-        let parent_contours = output.shapes.shape_ranges[link.parent_shape_index];
-        assert!(
-            (parent_contours.start as usize..parent_contours.end as usize)
-                .contains(&link.parent_contour_index)
-        );
     }
 }
