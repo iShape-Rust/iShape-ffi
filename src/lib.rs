@@ -13,7 +13,9 @@ pub use crate::bool::{
     Float64Overlay, Float64OverlayOptions, IntContourDirection, IntFillRule, IntOverlay,
     IntOverlayOptions, IntOverlayRule, IntShapeType,
 };
-pub use crate::shape::{FlatF64ShapesBuffer, FlatShapesBuffer, RangeFFI};
+pub use crate::shape::{
+    FlatF64ShapesBuffer, FlatShapesBuffer, FloatFlatShapeHierarchy, RangeFFI, ShapeHierarchyLinkFFI,
+};
 pub use crate::triangle::{
     FlatF64Triangulation, FlatIntTriangulation, Float64Triangulator, IntTriangulationIndex,
     IntTriangulator, IntTriangulatorValidation,

@@ -1,7 +1,65 @@
 use core::{ptr, slice};
 use std::boxed::Box;
 
-use crate::{FlatF64ShapesBuffer, FlatShapesBuffer, RangeFFI};
+use crate::{
+    FlatF64ShapesBuffer, FlatShapesBuffer, FloatFlatShapeHierarchy, RangeFFI, ShapeHierarchyLinkFFI,
+};
+
+#[unsafe(no_mangle)]
+pub extern "C" fn ishape_float_flat_shape_hierarchy_create() -> *mut FloatFlatShapeHierarchy {
+    Box::into_raw(Box::new(FloatFlatShapeHierarchy::default()))
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn ishape_float_flat_shape_hierarchy_clear(hierarchy: *mut FloatFlatShapeHierarchy) {
+    if let Some(hierarchy) = unsafe { hierarchy.as_mut() } {
+        hierarchy.clear();
+    }
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn ishape_float_flat_shape_hierarchy_free(hierarchy: *mut FloatFlatShapeHierarchy) {
+    if hierarchy.is_null() {
+        return;
+    }
+
+    unsafe {
+        drop(Box::from_raw(hierarchy));
+    }
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn ishape_float_flat_shape_hierarchy_shapes(
+    hierarchy: *const FloatFlatShapeHierarchy,
+) -> *const FlatF64ShapesBuffer {
+    unsafe {
+        hierarchy
+            .as_ref()
+            .map_or(ptr::null(), |hierarchy| &raw const hierarchy.shapes)
+    }
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn ishape_float_flat_shape_hierarchy_links_ptr(
+    hierarchy: *const FloatFlatShapeHierarchy,
+) -> *const ShapeHierarchyLinkFFI {
+    unsafe {
+        hierarchy
+            .as_ref()
+            .map_or(ptr::null(), |hierarchy| hierarchy.links.as_ptr())
+    }
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn ishape_float_flat_shape_hierarchy_links_len(
+    hierarchy: *const FloatFlatShapeHierarchy,
+) -> usize {
+    unsafe {
+        hierarchy
+            .as_ref()
+            .map_or(0, |hierarchy| hierarchy.links.len())
+    }
+}
 
 #[unsafe(no_mangle)]
 pub extern "C" fn ishape_flat_shapes_create() -> *mut FlatShapesBuffer {
@@ -187,7 +245,7 @@ fn validate_flat_f64_shape_layout(
     contours: &[RangeFFI],
     shapes: &[RangeFFI],
 ) -> bool {
-    if point_len % 2 != 0 {
+    if !point_len.is_multiple_of(2) {
         return false;
     }
 
@@ -201,7 +259,7 @@ fn validate_flat_f64_shape_layout(
         if start >= end || end > point_len {
             return false;
         }
-        if (end - start) % 2 != 0 {
+        if !(end - start).is_multiple_of(2) {
             return false;
         }
     }

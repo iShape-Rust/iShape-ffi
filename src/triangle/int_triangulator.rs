@@ -11,17 +11,19 @@ pub enum TriangulateContourError {
 
 /// FFI-safe wrapper around `i_triangle::int::triangulator::IntTriangulator`.
 pub struct IntTriangulator {
-    pub(crate) inner: CoreIntTriangulator<i32, IntTriangulationIndex>,
+    pub(crate) _inner: CoreIntTriangulator<i32, IntTriangulationIndex>,
 }
 
 impl IntTriangulator {
     /// Constructs a new triangulator with explicit validation configuration.
     #[inline]
     pub fn new(max_points_count: usize, validation: IntTriangulatorValidation) -> Self {
-        let mut solver = Solver::default();
-        solver.multithreading = None;
+        let solver = Solver {
+            multithreading: None,
+            ..Solver::default()
+        };
         Self {
-            inner: CoreIntTriangulator::new(max_points_count, validation.into(), solver),
+            _inner: CoreIntTriangulator::new(max_points_count, validation.into(), solver),
         }
     }
 }

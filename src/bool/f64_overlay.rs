@@ -46,7 +46,7 @@ impl Float64Overlay {
         points: &[f64],
         shape_type: ShapeType,
     ) -> Result<(), AddContourError> {
-        if points.len() % 2 != 0 {
+        if !points.len().is_multiple_of(2) {
             return Err(AddContourError::OddCoordinateCount);
         }
 
@@ -70,8 +70,10 @@ impl Float64Overlay {
     /// Executes the boolean operation and returns the resulting shapes.
     #[inline]
     pub fn overlay(&self, overlay_rule: OverlayRule, fill_rule: FillRule) -> Float64Shapes {
-        let mut solver = Solver::default();
-        solver.multithreading = None;
+        let solver = Solver {
+            multithreading: None,
+            ..Solver::default()
+        };
 
         let mut overlay = FloatOverlay::with_subj_and_clip_custom(
             &self.subject,

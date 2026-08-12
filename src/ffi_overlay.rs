@@ -156,8 +156,10 @@ pub extern "C" fn ishape_overlay_f64_flat_shapes_into_flat(
     let subject_contours: Vec<_> = subject_shapes.into_iter().flatten().collect();
     let clip_contours: Vec<_> = clip_shapes.into_iter().flatten().collect();
 
-    let mut solver = Solver::default();
-    solver.multithreading = None;
+    let solver = Solver {
+        multithreading: None,
+        ..Solver::default()
+    };
 
     let mut overlay = CoreFloatOverlay::with_subj_and_clip_custom(
         &subject_contours,

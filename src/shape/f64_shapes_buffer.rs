@@ -63,7 +63,7 @@ impl<'a> Iterator for FlatF64ShapesBufferResourceIterator<'a> {
                 continue;
             }
 
-            if start % 2 != 0 || end % 2 != 0 {
+            if !start.is_multiple_of(2) || !end.is_multiple_of(2) {
                 continue;
             }
 
@@ -190,7 +190,7 @@ impl FlatF64ShapesBuffer {
 
     #[inline]
     fn points_as_pairs(&self) -> Option<&[[f64; 2]]> {
-        if self.flat_points.len() % 2 != 0 {
+        if !self.flat_points.len().is_multiple_of(2) {
             return None;
         }
 
@@ -199,7 +199,7 @@ impl FlatF64ShapesBuffer {
     }
 
     #[inline]
-    fn set_from_core(&mut self, core: &CoreFlatF64ShapesBuffer) {
+    pub(crate) fn set_from_core(&mut self, core: &CoreFlatF64ShapesBuffer) {
         self.clear_and_reserve(
             core.points.len().saturating_mul(2),
             core.contour_ranges.len(),

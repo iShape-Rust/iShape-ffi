@@ -11,8 +11,10 @@ pub struct Float64Triangulator {
 impl Float64Triangulator {
     #[inline]
     pub fn new(max_points_count: usize, validation: IntTriangulatorValidation) -> Self {
-        let mut solver = Solver::default();
-        solver.multithreading = None;
+        let solver = Solver {
+            multithreading: None,
+            ..Solver::default()
+        };
         Self {
             inner: CoreTriangulator::new(max_points_count, validation.into(), solver),
         }

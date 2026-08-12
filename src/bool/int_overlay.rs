@@ -35,7 +35,7 @@ impl IntOverlay {
         points: &[i32],
         shape_type: ShapeType,
     ) -> Result<(), AddContourError> {
-        if points.len() % 2 != 0 {
+        if !points.len().is_multiple_of(2) {
             return Err(AddContourError::OddCoordinateCount);
         }
 
