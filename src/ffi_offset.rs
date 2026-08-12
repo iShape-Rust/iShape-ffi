@@ -190,6 +190,16 @@ pub extern "C" fn ishape_variable_stroke_f64_contour_to_flat_styled(
         ));
     }
 
+    // iOverlay 8 represents closure in the centerline itself instead of taking
+    // a separate flag. Keep the existing FFI contract by closing the path here.
+    if is_closed_path {
+        let first = contour[0];
+        let last = contour[contour.len() - 1];
+        if first.point.x != last.point.x || first.point.y != last.point.y {
+            contour.push(first);
+        }
+    }
+
     let join = if let Some(join) = decode_line_join(join_kind, join_value) {
         join
     } else {
@@ -217,8 +227,8 @@ pub extern "C" fn ishape_variable_stroke_f64_contour_to_flat_styled(
         (_, _, LineCap::Round(value)) => value,
         _ => 0.1,
     };
-    let style = VariableStrokeStyle::new(round_angle);
-    let shapes = contour.variable_stroke(style, is_closed_path);
+    let style = VariableStrokeStyle::new().round_angle(round_angle);
+    let shapes = contour.variable_stroke(style);
 
     let buffer = unsafe { &mut *output };
     buffer.set_shapes(&shapes);
@@ -246,6 +256,28 @@ mod tests {
             0.0,
             2,
             0.0,
+            &mut output,
+        );
+
+        assert!(ok);
+        assert!(!output.is_empty());
+    }
+
+    #[test]
+    fn variable_stroke_f64_contour_to_flat_styled_closes_path() {
+        let vertices = [0.0, 0.0, 2.0, 10.0, 0.0, 4.0, 5.0, 10.0, 3.0];
+        let mut output = FlatF64ShapesBuffer::default();
+
+        let ok = ishape_variable_stroke_f64_contour_to_flat_styled(
+            vertices.as_ptr(),
+            vertices.len(),
+            true,
+            2,
+            0.25 * PI,
+            1,
+            0.25 * PI,
+            1,
+            0.25 * PI,
             &mut output,
         );
 
