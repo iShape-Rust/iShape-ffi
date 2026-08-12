@@ -1,6 +1,8 @@
 use core::ptr;
 use std::boxed::Box;
 
+use i_triangle::float::triangulatable::Triangulatable;
+
 use crate::{
     FlatF64ShapesBuffer, FlatF64Triangulation, FlatIntTriangulation, Float64Triangulator,
     IntTriangulationIndex, IntTriangulator, IntTriangulatorValidation,
@@ -213,4 +215,58 @@ pub extern "C" fn ishape_triangle_f64_triangulator_triangulate_flat(
     shapes_vec.clear();
 
     true
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn ishape_triangle_f64_shapes_to_convex_polygons(
+    shapes: *const FlatF64ShapesBuffer,
+    output: *mut FlatF64ShapesBuffer,
+) -> bool {
+    if shapes.is_null() || output.is_null() {
+        return false;
+    }
+
+    let shapes = unsafe { &*shapes }.to_shapes();
+    let output = unsafe { &mut *output };
+    if shapes.is_empty() {
+        output.clear();
+        return true;
+    }
+
+    let polygons = shapes
+        .as_slice()
+        .triangulate()
+        .into_delaunay()
+        .to_convex_polygons();
+    output.set_contours_as_shapes(&polygons);
+
+    true
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use i_triangle::i_overlay::i_float::float::point::FloatPoint;
+
+    #[test]
+    fn convex_decomposition_splits_concave_shape() {
+        let shape = vec![vec![
+            FloatPoint::new(0.0, 0.0),
+            FloatPoint::new(6.0, 0.0),
+            FloatPoint::new(6.0, 2.0),
+            FloatPoint::new(2.0, 2.0),
+            FloatPoint::new(2.0, 6.0),
+            FloatPoint::new(0.0, 6.0),
+        ]];
+        let input = FlatF64ShapesBuffer::from(&vec![shape]);
+        let mut output = FlatF64ShapesBuffer::default();
+
+        let ok = ishape_triangle_f64_shapes_to_convex_polygons(&input, &mut output);
+
+        assert!(ok);
+        let polygons = output.to_shapes();
+        assert!(polygons.len() > 1);
+        assert!(polygons.iter().all(|shape| shape.len() == 1));
+        assert!(polygons.iter().all(|shape| shape[0].len() >= 3));
+    }
 }

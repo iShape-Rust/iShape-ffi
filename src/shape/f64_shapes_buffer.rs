@@ -150,6 +150,27 @@ impl FlatF64ShapesBuffer {
     }
 
     #[inline]
+    pub(crate) fn set_contours_as_shapes<P>(&mut self, contours: &[Vec<P>])
+    where
+        P: FloatPointCompatible<Scalar = f64>,
+    {
+        let point_count = contours.iter().map(Vec::len).sum();
+        let mut core =
+            CoreFlatF64ShapesBuffer::with_capacity(point_count, contours.len(), contours.len());
+
+        for contour in contours {
+            let point_start = core.points.len();
+            core.points
+                .extend(contour.iter().map(|p| FloatPoint::new(p.x(), p.y())));
+            core.contour_ranges.push(point_start..core.points.len());
+            let contour_index = core.contour_ranges.len() - 1;
+            core.shape_ranges.push(contour_index..contour_index + 1);
+        }
+
+        self.set_from_core(&core);
+    }
+
+    #[inline]
     pub fn push_shapes<P>(&mut self, shapes: &[Shape<P>])
     where
         P: FloatPointCompatible<Scalar = f64>,
