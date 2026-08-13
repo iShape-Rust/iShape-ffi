@@ -1,6 +1,6 @@
 [package]
 name = "i_shape_ffi"
-version = "0.2.5"
+version = "0.2.6"
 edition = "2024"
 
 [lib]
